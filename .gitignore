@@ -15,11 +15,14 @@ documents/
 CLAUDE.md
 CLAUDE.local.md
 .ruff_cache/
+*/__pycache__/
+*/__init__.py
 
 # Environment files
 .env
 .env.local
 .env.*.local
+.env.example    
 
 # IDE/Editor files
 .vscode/
