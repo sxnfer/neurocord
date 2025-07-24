@@ -39,3 +39,7 @@ CLAUDE.local.md
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Logs and temporary files
+*.log
+CODEBASE_WALKTHROUGH.md
