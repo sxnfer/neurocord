@@ -114,7 +114,7 @@ class EmbeddingRequest(BaseModel):
 
     text: str = Field(..., description="Text to generate embedding for")
     model: str = Field(
-        default="text-embedding-ada-002", description="OpenAI embedding model"
+        default="text-embedding-3-small	", description="OpenAI embedding model"
     )
 
     class Config:
