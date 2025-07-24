@@ -35,7 +35,6 @@ class Config(BaseModel):
     )
 
     @field_validator("discord_token")
-    @classmethod
     def validate_discord_token(cls, value: str) -> str:
         """Validate Discord token format."""
         if not value or len(value) < 50:
@@ -43,7 +42,6 @@ class Config(BaseModel):
         return value
 
     @field_validator("supabase_url")
-    @classmethod
     def validate_supabase_url(cls, value: str) -> str:
         """Validate Supabase URL format."""
         if not value.startswith("https://") or "supabase.co" not in value:
@@ -51,7 +49,6 @@ class Config(BaseModel):
         return value
 
     @field_validator("openai_api_key")
-    @classmethod
     def validate_openai_key(cls, value: str) -> str:
         """Validate OpenAI API key format."""
         if not value.startswith("sk-"):
@@ -59,7 +56,6 @@ class Config(BaseModel):
         return value
 
     @field_validator("max_search_results")
-    @classmethod
     def validate_max_results(cls, value: int) -> int:
         """Validate search results limit."""
         if not 1 <= value <= 50:
