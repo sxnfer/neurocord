@@ -5,6 +5,7 @@ from nextcord import SlashOption
 from nextcord.ext import commands
 
 from utils.database import db_manager
+from utils.embeddings import embedding_manager
 
 
 class TestCommands(commands.Cog):
@@ -78,6 +79,50 @@ class TestCommands(commands.Cog):
             # Add error details if available
             if result.errors:
                 error_text = "\n".join(result.errors[:3])  # Show first 3 errors
+                embed.add_field(
+                    name="Errors", value=f"```{error_text}```", inline=False
+                )
+
+        await interaction.followup.send(embed=embed)
+
+    @nextcord.slash_command(
+        name="embedding_test", description="Test OpenAI embedding generation"
+    )
+    async def embedding_test(self, interaction: nextcord.Interaction):
+        """Test OpenAI embedding API connection."""
+        # Defer the response since API calls can take time
+        await interaction.response.defer()
+
+        # Test the embedding generation
+        result = await embedding_manager.test_connection()
+
+        if result.success:
+            # Create a nice embed for success
+            embed = nextcord.Embed(
+                title="🟢 OpenAI Embedding Test",
+                description=result.message,
+                color=nextcord.Color.green(),
+            )
+            embed.add_field(name="Status", value="✅ Connected", inline=True)
+            embed.add_field(name="Model", value="text-embedding-3-small", inline=True)
+
+            # Show embedding dimensions from the result data
+            if result.data and "embedding_dimensions" in result.data:
+                dimensions = result.data["embedding_dimensions"]
+                embed.add_field(name="Dimensions", value=f"{dimensions}", inline=True)
+
+        else:
+            # Create embed for failure
+            embed = nextcord.Embed(
+                title="🔴 OpenAI Embedding Test",
+                description=result.message,
+                color=nextcord.Color.red(),
+            )
+            embed.add_field(name="Status", value="❌ Failed", inline=True)
+
+            # Add error details if available
+            if result.errors:
+                error_text = "\n".join(result.errors[:2])  # Show first 2 errors
                 embed.add_field(
                     name="Errors", value=f"```{error_text}```", inline=False
                 )
