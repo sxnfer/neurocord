@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any, List, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class BaseEntity(BaseModel):
@@ -33,6 +33,24 @@ class SemanticContent(BaseEntity):
     embedding: Optional[List[float]] = Field(
         None, description="Vector embedding of the content"
     )
+
+    @field_validator("embedding", mode="before")
+    def validate_embedding(cls, value):
+        """Convert string embedding from database to list of floats."""
+        if value is None:
+            return None
+        if isinstance(value, str):
+            # Parse string representation like "[0.1, 0.2, 0.3]"
+            try:
+                # Remove brackets and split by comma
+                if value.startswith("[") and value.endswith("]"):
+                    value = value[1:-1]
+                return [float(x.strip()) for x in value.split(",") if x.strip()]
+            except (ValueError, AttributeError):
+                return None
+        if isinstance(value, list):
+            return value
+        return None
 
     @property
     def content_preview(self) -> str:
