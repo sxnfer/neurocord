@@ -4,6 +4,8 @@ import nextcord
 from nextcord import SlashOption
 from nextcord.ext import commands
 
+from utils.database import db_manager
+
 
 class TestCommands(commands.Cog):
     """Simple test commands to verify bot is working."""
@@ -40,6 +42,47 @@ class TestCommands(commands.Cog):
         await interaction.followup.send(
             "✅ Async test completed! This took 2 seconds but didn't block other commands."
         )
+
+    @nextcord.slash_command(name="db_test", description="Test database connection")
+    async def database_test(self, interaction: nextcord.Interaction):
+        """Test database connection and health."""
+        # Defer the response since database calls can take time
+        await interaction.response.defer()
+
+        # Test the database connection
+        result = await db_manager.test_connection()
+
+        if result.success:
+            # Create a nice embed for success
+            embed = nextcord.Embed(
+                title="🟢 Database Connection Test",
+                description=result.message,
+                color=nextcord.Color.green(),
+            )
+            embed.add_field(name="Status", value="✅ Connected", inline=True)
+            embed.add_field(name="Response Time", value="< 3 seconds", inline=True)
+
+            # Get additional health info
+            health = await db_manager.health_check()
+            embed.add_field(name="Health", value=health["status"].title(), inline=True)
+
+        else:
+            # Create embed for failure
+            embed = nextcord.Embed(
+                title="🔴 Database Connection Test",
+                description=result.message,
+                color=nextcord.Color.red(),
+            )
+            embed.add_field(name="Status", value="❌ Failed", inline=True)
+
+            # Add error details if available
+            if result.errors:
+                error_text = "\n".join(result.errors[:3])  # Show first 3 errors
+                embed.add_field(
+                    name="Errors", value=f"```{error_text}```", inline=False
+                )
+
+        await interaction.followup.send(embed=embed)
 
 
 def setup(bot):
