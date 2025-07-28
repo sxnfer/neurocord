@@ -30,7 +30,7 @@ class DiscordBot(commands.Bot):
         super().__init__(
             command_prefix="!",  # Fallback for text commands
             intents=intents,
-            help_command=None,  # We'll create our own
+            help_command=None,  # Disable default help command
         )
 
     async def on_ready(self):
