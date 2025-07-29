@@ -90,12 +90,7 @@ class DatabaseManager:
         """Test database connection and basic functionality."""
         try:
             # Simple query to test connection
-            response = (
-                self._client.table("semantic_content")
-                .select("count")
-                .limit(1)
-                .execute()
-            )
+            (self._client.table("semantic_content").select("count").limit(1).execute())
 
             return OperationResult.success_result(
                 "Database connection successful!",
@@ -112,12 +107,7 @@ class DatabaseManager:
         """Get database health information."""
         try:
             # Test basic table access
-            response = (
-                self._client.table("semantic_content")
-                .select("count")
-                .limit(1)
-                .execute()
-            )
+            (self._client.table("semantic_content").select("count").limit(1).execute())
 
             return {
                 "status": "healthy",
@@ -255,7 +245,7 @@ class DatabaseManager:
                 )
 
             # Delete the content
-            delete_response = (
+            (
                 self._client.table("semantic_content")
                 .delete()
                 .eq("id", str(content_id))
