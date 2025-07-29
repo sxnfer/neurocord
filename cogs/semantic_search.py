@@ -26,8 +26,12 @@ class SemanticSearch(commands.Cog):
         content: str = SlashOption(description="Content to save for later searching"),
     ):
         """Save content with semantic embedding."""
-        # Defer response as this involves API calls
-        await interaction.response.defer()
+        # Defer response immediately to prevent timeout
+        try:
+            await interaction.response.defer()
+        except Exception as e:
+            logger.warning(f"Failed to defer interaction: {e}")
+            return
 
         try:
             # Generate embedding for the content
@@ -104,8 +108,12 @@ class SemanticSearch(commands.Cog):
         ),
     ):
         """Search for semantically similar content."""
-        # Defer response as this involves API calls
-        await interaction.response.defer()
+        # Defer response immediately to prevent timeout
+        try:
+            await interaction.response.defer()
+        except Exception as e:
+            logger.warning(f"Failed to defer interaction: {e}")
+            return
 
         try:
             # Generate embedding for the search query
