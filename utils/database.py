@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -419,6 +419,96 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Error retrieving user content: {e}")
             return []
+
+    @database_timeout("search")
+    async def get_active_watch_room(self, guild_id: int) -> Optional[dict]:
+        """Get active watch room for guild if it exists and is within 24 hours."""
+        try:
+            # Calculate 24 hours ago
+            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+
+            # Query for active room within 24 hours
+            response = (
+                self._client.table("watch_rooms")
+                .select("*")
+                .eq("guild_id", guild_id)
+                .gte("created_at", twenty_four_hours_ago.isoformat())
+                .execute()
+            )
+
+            if response.data:
+                room_data = response.data[0]
+                # Convert created_at string back to datetime
+                room_data["created_at"] = datetime.fromisoformat(
+                    room_data["created_at"].replace("Z", "+00:00")
+                )
+                logger.info(f"Found active room for guild {guild_id}")
+                return room_data
+
+            logger.info(f"No active room found for guild {guild_id}")
+            return None
+
+        except Exception as e:
+            logger.error(f"Error retrieving active watch room: {e}")
+            return None
+
+    @database_timeout("save")
+    async def save_watch_room(
+        self, guild_id: int, room_url: str, created_by: int
+    ) -> OperationResult:
+        """Save or update watch room for guild."""
+        try:
+            # Use upsert to handle both new rooms and room updates for same guild
+            response = (
+                self._client.table("watch_rooms")
+                .upsert(
+                    {
+                        "guild_id": guild_id,
+                        "room_url": room_url,
+                        "created_at": datetime.utcnow().isoformat(),
+                        "created_by": created_by,
+                    }
+                )
+                .execute()
+            )
+
+            if response.data:
+                logger.info(f"Saved watch room for guild {guild_id}")
+                return OperationResult.success_result(
+                    "Watch room saved successfully!",
+                    data={"guild_id": guild_id, "room_url": room_url},
+                )
+            else:
+                return OperationResult.error_result("Failed to save watch room")
+
+        except Exception as e:
+            logger.error(f"Error saving watch room: {e}")
+            return OperationResult.error_result(
+                "Database error while saving watch room", errors=[str(e)]
+            )
+
+    @database_timeout("delete")
+    async def cleanup_expired_watch_rooms(self) -> OperationResult:
+        """Clean up watch rooms older than 24 hours (optional maintenance)."""
+        try:
+            # Calculate 24 hours ago
+            twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
+
+            # Delete expired rooms
+            (
+                self._client.table("watch_rooms")
+                .delete()
+                .lt("created_at", twenty_four_hours_ago.isoformat())
+                .execute()
+            )
+
+            # Count is not directly available, but we can log the operation
+            logger.info("Cleaned up expired watch rooms")
+            return OperationResult.success_result("Expired rooms cleaned up")
+
+        except Exception as e:
+            logger.error(f"Error cleaning up expired rooms: {e}")
+            return OperationResult.error_result("Error during cleanup", errors=[str(e)])
 
 
 # Singleton instance for easy importing
