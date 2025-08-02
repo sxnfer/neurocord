@@ -44,3 +44,11 @@ Thumbs.db
 *.log
 CODEBASE_WALKTHROUGH.md
 database_setup.sql
+
+# Terraform state files
+*.tfstate
+*.tfstate.backup
+terraform.tfvars
+.terraform.tfvars.json
+.terraform
+.terraform.lock.hcl
