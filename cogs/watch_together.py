@@ -34,7 +34,7 @@ class WatchTogether(commands.Cog):
         """Create or retrieve Watch2gether room with 24-hour guild persistence."""
         # Defer response immediately to prevent timeout
         try:
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.defer(ephemeral=False)
         except Exception as e:
             logger.warning(f"Failed to defer interaction: {e}")
             return
@@ -118,7 +118,7 @@ class WatchTogether(commands.Cog):
                     description="Failed to create Watch2gether room. Please try again later.",
                     color=nextcord.Color.red(),
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=False)
                 return
 
             # Save room to database
@@ -185,7 +185,7 @@ class WatchTogether(commands.Cog):
                 description="An unexpected error occurred while processing your request.",
                 color=nextcord.Color.red(),
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=False)
 
     @nextcord.slash_command(
         name="watch-delete",
@@ -195,7 +195,7 @@ class WatchTogether(commands.Cog):
         """Manually delete the server's Watch2gether room from the database."""
         # Defer response immediately to prevent timeout
         try:
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.defer(ephemeral=False)
         except Exception as e:
             logger.warning(f"Failed to defer interaction: {e}")
             return
@@ -210,7 +210,7 @@ class WatchTogether(commands.Cog):
                     description="Your server doesn't have an active Watch2gether room to delete.",
                     color=nextcord.Color.blue(),
                 )
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=False)
                 return
 
             # Delete the room from database
@@ -252,7 +252,7 @@ class WatchTogether(commands.Cog):
                     color=nextcord.Color.red(),
                 )
 
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=False)
 
         except Exception as e:
             logger.error(f"Error in watch-delete command: {e}")
@@ -261,7 +261,7 @@ class WatchTogether(commands.Cog):
                 description="An unexpected error occurred while deleting the room.",
                 color=nextcord.Color.red(),
             )
-            await interaction.followup.send(embed=embed, ephemeral=True)
+            await interaction.followup.send(embed=embed, ephemeral=False)
 
     async def validate_room_exists(self, room_url: str) -> bool:
         """Check if Watch2gether room still exists and is accessible."""
