@@ -488,6 +488,29 @@ class DatabaseManager:
             )
 
     @database_timeout("delete")
+    async def cleanup_invalid_watch_room(self, guild_id: int) -> OperationResult:
+        """Clean up invalid watch room for a specific guild immediately."""
+        try:
+            # Delete the room for this guild
+            (
+                self._client.table("watch_rooms")
+                .delete()
+                .eq("guild_id", guild_id)
+                .execute()
+            )
+
+            logger.info(f"Cleaned up invalid watch room for guild {guild_id}")
+            return OperationResult.success_result(
+                "Invalid room cleaned up", data={"guild_id": guild_id}
+            )
+
+        except Exception as e:
+            logger.error(f"Error cleaning up invalid room for guild {guild_id}: {e}")
+            return OperationResult.error_result(
+                "Error during invalid room cleanup", errors=[str(e)]
+            )
+
+    @database_timeout("delete")
     async def cleanup_expired_watch_rooms(self) -> OperationResult:
         """Clean up watch rooms older than 24 hours (optional maintenance)."""
         try:
