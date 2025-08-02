@@ -403,23 +403,84 @@ class TestWatchCommands:
     async def test_watch_command_existing_room(
         self, watch_cog, mock_interaction, existing_room_data
     ):
-        """Test returning existing room URL."""
+        """Test returning existing room URL when validation passes."""
         with patch("cogs.watch_together.db_manager") as mock_db:
             # Mock existing room (async method)
             mock_db.get_active_watch_room = AsyncMock(return_value=existing_room_data)
 
-            await watch_cog.watch_command(mock_interaction)
+            # Mock room validation to return True (room is valid)
+            with patch.object(
+                watch_cog, "validate_room_exists", new_callable=AsyncMock
+            ) as mock_validate:
+                mock_validate.return_value = True
 
-            # Verify only checked for existing room, didn't create new one
-            mock_db.get_active_watch_room.assert_called_once_with(123456789)
-            mock_db.save_watch_room.assert_not_called()
+                await watch_cog.watch_command(mock_interaction)
 
-            # Verify Discord response shows existing room
-            mock_interaction.followup.send.assert_called_once()
-            call_args = mock_interaction.followup.send.call_args
-            embed = call_args[1]["embed"]
-            assert "🎬" in embed.title
-            assert "already has an active" in embed.description
+                # Verify existing room was checked and validated
+                mock_db.get_active_watch_room.assert_called_once_with(123456789)
+                mock_validate.assert_called_once_with(existing_room_data["room_url"])
+                mock_db.save_watch_room.assert_not_called()
+
+                # Verify Discord response shows existing room
+                mock_interaction.followup.send.assert_called_once()
+                call_args = mock_interaction.followup.send.call_args
+                embed = call_args[1]["embed"]
+                assert "🎬" in embed.title
+                assert "already has an active" in embed.description
+
+    @pytest.mark.asyncio
+    async def test_watch_command_existing_room_invalid_recovery(
+        self, watch_cog, mock_interaction, existing_room_data
+    ):
+        """Test room recovery when existing room validation fails."""
+        new_room_data = {
+            "room_url": "https://w2g.tv/rooms/recovery123",
+            "streamkey": "recovery123",
+            "api_response": {"success": True},
+        }
+
+        with patch("cogs.watch_together.db_manager") as mock_db:
+            # Mock existing room but validation fails
+            mock_db.get_active_watch_room = AsyncMock(return_value=existing_room_data)
+            mock_db.cleanup_invalid_watch_room = AsyncMock(
+                return_value=OperationResult.success_result("Cleaned up")
+            )
+            mock_db.save_watch_room = AsyncMock(
+                return_value=OperationResult.success_result("Saved")
+            )
+
+            # Mock room validation to return False (room is invalid)
+            with patch.object(
+                watch_cog, "validate_room_exists", new_callable=AsyncMock
+            ) as mock_validate:
+                mock_validate.return_value = False
+
+                # Mock room creation
+                with patch.object(
+                    watch_cog, "_create_watch2gether_room", new_callable=AsyncMock
+                ) as mock_create:
+                    mock_create.return_value = new_room_data
+
+                    await watch_cog.watch_command(mock_interaction)
+
+                    # Verify recovery workflow
+                    mock_db.get_active_watch_room.assert_called_once_with(123456789)
+                    mock_validate.assert_called_once_with(
+                        existing_room_data["room_url"]
+                    )
+                    mock_db.cleanup_invalid_watch_room.assert_called_once_with(
+                        123456789
+                    )
+                    mock_create.assert_called_once()
+                    mock_db.save_watch_room.assert_called_once()
+
+                    # Verify Discord response shows recovery message
+                    mock_interaction.followup.send.assert_called_once()
+                    call_args = mock_interaction.followup.send.call_args
+                    embed = call_args[1]["embed"]
+                    assert "🔄" in embed.title
+                    assert "Renewed" in embed.title
+                    assert "no longer available" in embed.description
 
     @pytest.mark.asyncio
     async def test_watch_command_with_preload_url(self, watch_cog, mock_interaction):
@@ -569,13 +630,6 @@ class TestIntegrationWorkflows:
     @pytest.mark.asyncio
     async def test_full_workflow_24_hour_expiry(self, watch_cog, mock_interaction):
         """Test full expiry logic workflow."""
-        # Create room data that's exactly 25 hours old (expired)
-        expired_room_data = {
-            "guild_id": 123456789,
-            "room_url": "https://w2g.tv/rooms/expired123",
-            "created_at": datetime.utcnow() - timedelta(hours=25),
-            "created_by": 111111111,
-        }
 
         new_room_data = {
             "room_url": "https://w2g.tv/rooms/fresh123",
