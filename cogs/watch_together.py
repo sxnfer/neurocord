@@ -200,20 +200,21 @@ class WatchTogether(commands.Cog):
                 logger.warning(f"Could not extract streamkey from URL: {room_url}")
                 return False
 
-            # Check room status via W2G API
+            # Check room status by trying to access the actual room page
             timeout = aiohttp.ClientTimeout(total=5)  # Quick validation check
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                # Use the room info endpoint to check if room exists
-                check_url = f"https://api.w2g.tv/rooms/{streamkey}"
-                async with session.get(check_url) as response:
+                # Check if the room page is accessible
+                async with session.get(room_url) as response:
+                    logger.info(
+                        f"Room validation for {streamkey}: HTTP {response.status}"
+                    )
+
                     if response.status == 200:
-                        room_data = await response.json()
-                        # Check if the room is valid and not expired
-                        is_valid = room_data.get("streamkey") == streamkey
+                        # Room page exists and is accessible
                         logger.info(
-                            f"Room validation for {streamkey}: {'valid' if is_valid else 'invalid'}"
+                            f"Room validation for {streamkey}: valid (room page accessible)"
                         )
-                        return is_valid
+                        return True
                     elif response.status == 404:
                         logger.info(
                             f"Room {streamkey} not found (404) - room was deleted"
@@ -221,10 +222,10 @@ class WatchTogether(commands.Cog):
                         return False
                     else:
                         logger.warning(
-                            f"Room validation API returned status {response.status} for {streamkey}"
+                            f"Room validation returned status {response.status} for {streamkey}"
                         )
-                        # For other status codes, assume room might still be valid
-                        # to avoid false positives during API issues
+                        # For other status codes (like 503, 502), assume room might still be valid
+                        # to avoid false positives during temporary service issues
                         return True
 
         except aiohttp.ClientTimeout:
