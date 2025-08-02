@@ -67,7 +67,7 @@ class WatchTogether(commands.Cog):
                 )
                 embed.set_footer(text="Room expires 24 hours after creation")
 
-                await interaction.followup.send(embed=embed, ephemeral=True)
+                await interaction.followup.send(embed=embed, ephemeral=False)
                 return
 
             # No existing room, create a new one
