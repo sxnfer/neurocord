@@ -187,6 +187,82 @@ class WatchTogether(commands.Cog):
             )
             await interaction.followup.send(embed=embed, ephemeral=True)
 
+    @nextcord.slash_command(
+        name="watch-delete",
+        description="Delete your server's Watch2gether room from the bot",
+    )
+    async def watch_delete_command(self, interaction: nextcord.Interaction):
+        """Manually delete the server's Watch2gether room from the database."""
+        # Defer response immediately to prevent timeout
+        try:
+            await interaction.response.defer(ephemeral=True)
+        except Exception as e:
+            logger.warning(f"Failed to defer interaction: {e}")
+            return
+
+        try:
+            # Check if there's an existing room to delete
+            existing_room = await db_manager.get_active_watch_room(interaction.guild.id)
+
+            if not existing_room:
+                embed = nextcord.Embed(
+                    title="ℹ️ No Room Found",
+                    description="Your server doesn't have an active Watch2gether room to delete.",
+                    color=nextcord.Color.blue(),
+                )
+                await interaction.followup.send(embed=embed, ephemeral=True)
+                return
+
+            # Delete the room from database
+            cleanup_result = await db_manager.cleanup_invalid_watch_room(
+                interaction.guild.id
+            )
+
+            if cleanup_result.success:
+                logger.info(
+                    f"Manually deleted watch room for guild {interaction.guild.id} by user {interaction.user.id}"
+                )
+                embed = nextcord.Embed(
+                    title="🗑️ Room Deleted",
+                    description="Your server's Watch2gether room has been removed from the bot.\n\nYou can now use `/watch` to create a fresh room!",
+                    color=nextcord.Color.green(),
+                )
+                embed.add_field(
+                    name="Deleted Room",
+                    value=existing_room["room_url"],
+                    inline=False,
+                )
+                embed.add_field(
+                    name="Originally Created",
+                    value=f"<t:{int(existing_room['created_at'].timestamp())}:R>",
+                    inline=True,
+                )
+                embed.add_field(
+                    name="Originally Created by",
+                    value=f"<@{existing_room['created_by']}>",
+                    inline=True,
+                )
+            else:
+                logger.error(
+                    f"Failed to delete watch room for guild {interaction.guild.id}: {cleanup_result.message}"
+                )
+                embed = nextcord.Embed(
+                    title="❌ Deletion Failed",
+                    description="Failed to delete the Watch2gether room. Please try again later.",
+                    color=nextcord.Color.red(),
+                )
+
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
+        except Exception as e:
+            logger.error(f"Error in watch-delete command: {e}")
+            embed = nextcord.Embed(
+                title="❌ Unexpected Error",
+                description="An unexpected error occurred while deleting the room.",
+                color=nextcord.Color.red(),
+            )
+            await interaction.followup.send(embed=embed, ephemeral=True)
+
     async def validate_room_exists(self, room_url: str) -> bool:
         """Check if Watch2gether room still exists and is accessible."""
         try:

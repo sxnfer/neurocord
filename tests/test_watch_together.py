@@ -483,6 +483,72 @@ class TestWatchCommands:
                     assert "no longer available" in embed.description
 
     @pytest.mark.asyncio
+    async def test_watch_delete_command_success(
+        self, watch_cog, mock_interaction, existing_room_data
+    ):
+        """Test successful deletion of existing room."""
+        with patch("cogs.watch_together.db_manager") as mock_db:
+            # Mock existing room
+            mock_db.get_active_watch_room = AsyncMock(return_value=existing_room_data)
+            mock_db.cleanup_invalid_watch_room = AsyncMock(
+                return_value=OperationResult.success_result("Deleted")
+            )
+
+            await watch_cog.watch_delete_command(mock_interaction)
+
+            # Verify database calls
+            mock_db.get_active_watch_room.assert_called_once_with(123456789)
+            mock_db.cleanup_invalid_watch_room.assert_called_once_with(123456789)
+
+            # Verify Discord response
+            mock_interaction.followup.send.assert_called_once()
+            call_args = mock_interaction.followup.send.call_args
+            embed = call_args[1]["embed"]
+            assert "🗑️" in embed.title
+            assert "removed from the bot" in embed.description
+
+    @pytest.mark.asyncio
+    async def test_watch_delete_command_no_room(self, watch_cog, mock_interaction):
+        """Test deletion when no room exists."""
+        with patch("cogs.watch_together.db_manager") as mock_db:
+            # Mock no existing room
+            mock_db.get_active_watch_room = AsyncMock(return_value=None)
+
+            await watch_cog.watch_delete_command(mock_interaction)
+
+            # Verify database calls
+            mock_db.get_active_watch_room.assert_called_once_with(123456789)
+            mock_db.cleanup_invalid_watch_room.assert_not_called()
+
+            # Verify Discord response
+            mock_interaction.followup.send.assert_called_once()
+            call_args = mock_interaction.followup.send.call_args
+            embed = call_args[1]["embed"]
+            assert "ℹ️" in embed.title
+            assert "doesn't have an active" in embed.description
+
+    @pytest.mark.asyncio
+    async def test_watch_delete_command_failure(
+        self, watch_cog, mock_interaction, existing_room_data
+    ):
+        """Test deletion failure."""
+        with patch("cogs.watch_together.db_manager") as mock_db:
+            # Mock existing room but deletion failure
+            mock_db.get_active_watch_room = AsyncMock(return_value=existing_room_data)
+            mock_db.cleanup_invalid_watch_room = AsyncMock(
+                return_value=OperationResult.error_result("Database error")
+            )
+
+            await watch_cog.watch_delete_command(mock_interaction)
+
+            # Verify Discord response shows failure
+            mock_interaction.followup.send.assert_called_once()
+            call_args = mock_interaction.followup.send.call_args
+            embed = call_args[1]["embed"]
+            assert "❌" in embed.title
+            assert "Failed to delete" in embed.description
+
+    @pytest.mark.asyncio
     async def test_watch_command_with_preload_url(self, watch_cog, mock_interaction):
         """Test command with URL parameter."""
         preload_url = "https://youtube.com/watch?v=test123"
