@@ -43,14 +43,17 @@ class DiscordBot(commands.Bot):
         print(f"📊 Found {len(all_commands)} commands to sync:")
         for cmd in all_commands:
             print(f"  🔧 {cmd.name}: {cmd.description}")
-        
+
         # Sync slash commands globally (takes up to 1 hour)
         try:
             synced = await self.sync_all_application_commands()
-            print(f"✅ Synced {len(synced) if synced else 0} slash commands successfully")
+            print(
+                f"✅ Synced {len(synced) if synced else 0} slash commands successfully"
+            )
         except Exception as e:
             print(f"❌ Failed to sync commands: {e}")
             import traceback
+
             traceback.print_exc()
 
     async def load_cogs(self):
