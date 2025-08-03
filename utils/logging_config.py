@@ -9,7 +9,7 @@ from typing import Optional
 
 try:
     import colorama
-    from colorama import Fore, Style, Back
+    from colorama import Back, Fore, Style
 
     colorama.init(autoreset=True)
     COLORS_AVAILABLE = True
