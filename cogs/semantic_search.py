@@ -1,6 +1,6 @@
 """Semantic search commands for Discord bot."""
 
-import logging
+import time
 from uuid import UUID
 
 import nextcord
@@ -9,8 +9,9 @@ from nextcord.ext import commands
 
 from utils.database import db_manager
 from utils.embeddings import embedding_manager
+from utils.logging_config import get_logger, log_user_interaction, log_performance
 
-logger = logging.getLogger(__name__)
+logger = get_logger("semantic_search")
 
 
 class SemanticSearch(commands.Cog):
@@ -26,17 +27,39 @@ class SemanticSearch(commands.Cog):
         content: str = SlashOption(description="Content to save for later searching"),
     ):
         """Save content with semantic embedding."""
+        operation_start = time.time()
+
+        # Log user interaction
+        log_user_interaction(
+            interaction.user.id,
+            interaction.guild.id,
+            "save",
+            content_length=len(content),
+        )
+
         # Defer response immediately to prevent timeout
         try:
             await interaction.response.defer()
         except Exception as e:
-            logger.warning(f"Failed to defer interaction: {e}")
+            logger.warning(
+                f"Failed to defer interaction for user {interaction.user.id}: {e}"
+            )
             return
 
         try:
             # Generate embedding for the content
+            embedding_start = time.time()
             embedding = await embedding_manager.generate_embedding(content)
+            embedding_duration = time.time() - embedding_start
+
+            log_performance(
+                "embedding_generation", embedding_duration, content_length=len(content)
+            )
+
             if not embedding:
+                logger.error(
+                    f"Embedding generation failed for user {interaction.user.id}"
+                )
                 embed = nextcord.Embed(
                     title="❌ Embedding Failed",
                     description="Failed to generate embedding for your content. Please try again.",
@@ -46,14 +69,24 @@ class SemanticSearch(commands.Cog):
                 return
 
             # Save to database
+            save_start = time.time()
             result = await db_manager.save_content(
                 content=content,
                 embedding=embedding,
                 user_id=interaction.user.id,
                 guild_id=interaction.guild.id,
             )
+            save_duration = time.time() - save_start
+
+            log_performance("content_save", save_duration, content_length=len(content))
 
             if result.success:
+                total_duration = time.time() - operation_start
+                log_performance("save_command_total", total_duration, success=True)
+                logger.info(
+                    f"Successfully saved content for user {interaction.user.id} (ID: {result.data.get('id', 'Unknown')})"
+                )
+
                 # Success embed
                 embed = nextcord.Embed(
                     title="✅ Content Saved",
@@ -73,6 +106,12 @@ class SemanticSearch(commands.Cog):
                 embed.add_field(name="Embedding Dimensions", value="1536", inline=True)
 
             else:
+                total_duration = time.time() - operation_start
+                log_performance("save_command_total", total_duration, success=False)
+                logger.error(
+                    f"Save failed for user {interaction.user.id}: {result.message}"
+                )
+
                 # Error embed
                 embed = nextcord.Embed(
                     title="❌ Save Failed",
@@ -88,7 +127,13 @@ class SemanticSearch(commands.Cog):
             await interaction.followup.send(embed=embed)
 
         except Exception as e:
-            logger.error(f"Error in save command: {e}")
+            total_duration = time.time() - operation_start
+            log_performance(
+                "save_command_total", total_duration, success=False, error=str(e)
+            )
+            logger.exception(
+                f"Unexpected error in save command for user {interaction.user.id}: {e}"
+            )
             embed = nextcord.Embed(
                 title="❌ Unexpected Error",
                 description="An unexpected error occurred while saving your content.",
