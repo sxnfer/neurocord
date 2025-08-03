@@ -1,7 +1,7 @@
 """Database operations for semantic search with Supabase and pgvector."""
 
 import asyncio
-import logging
+import time
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 from uuid import UUID
@@ -10,6 +10,7 @@ from postgrest.exceptions import APIError
 from supabase import Client, create_client
 
 from utils.config import get_config
+from utils.logging_config import get_logger, log_performance
 from utils.models import (
     ContentValidation,
     OperationResult,
@@ -27,7 +28,7 @@ OPERATION_TIMEOUTS = {
     "test": 3,  # Connection testing
 }
 
-logger = logging.getLogger(__name__)
+logger = get_logger("database")
 
 
 def database_timeout(operation_type: str):
@@ -81,8 +82,12 @@ class DatabaseManager:
     def __init__(self):
         """Initialize Supabase client with connection pooling."""
         if self._client is None:
+            init_start = time.time()
             config = get_config()
             self._client = create_client(config.supabase_url, config.supabase_key)
+            init_duration = time.time() - init_start
+
+            log_performance("database_client_init", init_duration)
             logger.info("Database manager initialized with connection pooling")
 
     @database_timeout("test")
