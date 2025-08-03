@@ -8,8 +8,8 @@ import nextcord
 from nextcord.ext import commands
 
 from utils.config import get_config
-from utils.logging_config import setup_logging_preset, get_logger, log_performance
 from utils.database import db_manager
+from utils.logging_config import get_logger, log_performance, setup_logging_preset
 
 
 class DiscordBot(commands.Bot):
@@ -113,8 +113,8 @@ class DiscordBot(commands.Bot):
 
 async def main():
     """Main async entry point with comprehensive startup logging."""
-    import time
     import os
+    import time
 
     # Determine logging preset based on environment
     preset = os.getenv("LOGGING_PRESET", "development")

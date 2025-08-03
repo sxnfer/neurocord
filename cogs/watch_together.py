@@ -190,15 +190,19 @@ class WatchTogether(commands.Cog):
             embed.set_footer(text="Share this room URL with your server members!")
 
             await interaction.followup.send(embed=embed, ephemeral=False)
-            
+
             # Log successful operation
             total_duration = time.time() - operation_start
             log_performance("watch_command_total", total_duration, success=True)
 
         except Exception as e:
             total_duration = time.time() - operation_start
-            log_performance("watch_command_total", total_duration, success=False, error=str(e))
-            logger.exception(f"Error in watch command for user {interaction.user.id}: {e}")
+            log_performance(
+                "watch_command_total", total_duration, success=False, error=str(e)
+            )
+            logger.exception(
+                f"Error in watch command for user {interaction.user.id}: {e}"
+            )
             embed = nextcord.Embed(
                 title="❌ Unexpected Error",
                 description="An unexpected error occurred while processing your request.",
