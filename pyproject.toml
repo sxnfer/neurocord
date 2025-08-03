@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "aiohttp>=3.12.14",
+    "colorama>=0.4.6",
     "nextcord>=3.1.0",
     "openai>=1.97.0",
     "pgvector>=0.4.1",
