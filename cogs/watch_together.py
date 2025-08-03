@@ -1,6 +1,6 @@
 """Watch2gether commands for Discord bot."""
 
-import logging
+import time
 from typing import Optional
 
 import aiohttp
@@ -10,8 +10,9 @@ from nextcord.ext import commands
 
 from utils.config import get_config
 from utils.database import db_manager
+from utils.logging_config import get_logger, log_user_interaction, log_performance
 
-logger = logging.getLogger(__name__)
+logger = get_logger("watch_together")
 
 
 class WatchTogether(commands.Cog):
@@ -19,7 +20,7 @@ class WatchTogether(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        logger.info("WatchTogether cog initialized")
+        logger.info("WatchTogether cog initialized successfully")
 
     @nextcord.slash_command(
         name="watch", description="Create or get Watch2gether room for the server"
@@ -32,11 +33,23 @@ class WatchTogether(commands.Cog):
         ),
     ):
         """Create or retrieve Watch2gether room with 24-hour guild persistence."""
+        operation_start = time.time()
+
+        # Log user interaction
+        log_user_interaction(
+            interaction.user.id,
+            interaction.guild.id,
+            "watch",
+            has_preload_url=bool(url),
+        )
+
         # Defer response immediately to prevent timeout
         try:
             await interaction.response.defer(ephemeral=False)
         except Exception as e:
-            logger.warning(f"Failed to defer interaction: {e}")
+            logger.warning(
+                f"Failed to defer interaction for user {interaction.user.id}: {e}"
+            )
             return
 
         try:
@@ -177,9 +190,15 @@ class WatchTogether(commands.Cog):
             embed.set_footer(text="Share this room URL with your server members!")
 
             await interaction.followup.send(embed=embed, ephemeral=False)
+            
+            # Log successful operation
+            total_duration = time.time() - operation_start
+            log_performance("watch_command_total", total_duration, success=True)
 
         except Exception as e:
-            logger.error(f"Error in watch command: {e}")
+            total_duration = time.time() - operation_start
+            log_performance("watch_command_total", total_duration, success=False, error=str(e))
+            logger.exception(f"Error in watch command for user {interaction.user.id}: {e}")
             embed = nextcord.Embed(
                 title="❌ Unexpected Error",
                 description="An unexpected error occurred while processing your request.",
