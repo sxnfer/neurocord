@@ -10,7 +10,7 @@ from nextcord.ext import commands
 
 from utils.config import get_config
 from utils.database import db_manager
-from utils.logging_config import get_logger, log_user_interaction, log_performance
+from utils.logging_config import get_logger, log_performance, log_user_interaction
 
 logger = get_logger("watch_together")
 
@@ -45,7 +45,7 @@ class WatchTogether(commands.Cog):
 
         # Defer response immediately to prevent timeout
         try:
-            await interaction.response.defer(ephemeral=False)
+            await interaction.response.defer(ephemeral=True)
         except Exception as e:
             logger.warning(
                 f"Failed to defer interaction for user {interaction.user.id}: {e}"
@@ -218,7 +218,7 @@ class WatchTogether(commands.Cog):
         """Manually delete the server's Watch2gether room from the database."""
         # Defer response immediately to prevent timeout
         try:
-            await interaction.response.defer(ephemeral=False)
+            await interaction.response.defer(ephemeral=True)
         except Exception as e:
             logger.warning(f"Failed to defer interaction: {e}")
             return
