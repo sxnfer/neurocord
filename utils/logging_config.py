@@ -241,10 +241,8 @@ def get_logger(name: str) -> logging.Logger:
 
 
 def log_function_call(func_name: str, **kwargs) -> None:
-    """Log function calls with parameters for debugging."""
-    logger = get_logger("function_calls")
-    params = ", ".join(f"{k}={v}" for k, v in kwargs.items())
-    logger.debug(f"Called {func_name}({params})")
+    """Deprecated: previously used for debugging; no longer referenced."""
+    return None
 
 
 def log_performance(operation: str, duration: float, **metadata) -> None:
