@@ -9,7 +9,7 @@ from nextcord.ext import commands
 
 from utils.database import db_manager
 from utils.embeddings import embedding_manager
-from utils.logging_config import get_logger, log_user_interaction, log_performance
+from utils.logging_config import get_logger, log_performance, log_user_interaction
 
 logger = get_logger("semantic_search")
 
@@ -47,6 +47,14 @@ class SemanticSearch(commands.Cog):
             return
 
         try:
+            # Guard: guild-only command
+            if not interaction.guild:
+                await interaction.followup.send(
+                    "This command can only be used in servers.",
+                    ephemeral=True,
+                )
+                return
+
             # Generate embedding for the content
             embedding_start = time.time()
             embedding = await embedding_manager.generate_embedding(content)
@@ -103,7 +111,11 @@ class SemanticSearch(commands.Cog):
                     value=result.data.get("id", "Unknown"),
                     inline=True,
                 )
-                embed.add_field(name="Embedding Dimensions", value="1536", inline=True)
+                embed.add_field(
+                    name="Embedding Dimensions",
+                    value=str(len(embedding)),
+                    inline=True,
+                )
 
             else:
                 total_duration = time.time() - operation_start
@@ -161,6 +173,14 @@ class SemanticSearch(commands.Cog):
             return
 
         try:
+            # Guard: guild-only command
+            if not interaction.guild:
+                await interaction.followup.send(
+                    "This command can only be used in servers.",
+                    ephemeral=True,
+                )
+                return
+
             # Generate embedding for the search query
             query_embedding = await embedding_manager.generate_embedding(query)
             if not query_embedding:
@@ -238,6 +258,14 @@ class SemanticSearch(commands.Cog):
         await interaction.response.defer()
 
         try:
+            # Guard: guild-only command
+            if not interaction.guild:
+                await interaction.followup.send(
+                    "This command can only be used in servers.",
+                    ephemeral=True,
+                )
+                return
+
             # Validate UUID format
             try:
                 content_uuid = UUID(content_id)
@@ -294,6 +322,14 @@ class SemanticSearch(commands.Cog):
         await interaction.response.defer()
 
         try:
+            # Guard: guild-only command
+            if not interaction.guild:
+                await interaction.followup.send(
+                    "This command can only be used in servers.",
+                    ephemeral=True,
+                )
+                return
+
             # Validate UUID format
             try:
                 content_uuid = UUID(content_id)
@@ -367,6 +403,14 @@ class SemanticSearch(commands.Cog):
         await interaction.response.defer()
 
         try:
+            # Guard: guild-only command
+            if not interaction.guild:
+                await interaction.followup.send(
+                    "This command can only be used in servers.",
+                    ephemeral=True,
+                )
+                return
+
             # Get user's content directly from database
             user_content_list = await db_manager.get_user_content(
                 user_id=interaction.user.id, guild_id=interaction.guild.id, limit=50
