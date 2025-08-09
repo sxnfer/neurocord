@@ -2,7 +2,7 @@
 
 import asyncio
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 
@@ -31,8 +31,12 @@ OPERATION_TIMEOUTS = {
 logger = get_logger("database")
 
 
-def database_timeout(operation_type: str):
-    """Timeout decorator with comprehensive error handling."""
+def database_timeout(operation_type: str, fallback=None):
+    """Timeout decorator with comprehensive error handling and typed fallbacks.
+
+    If a fallback is provided, it will be returned on timeout/connection/API errors.
+    Fallback can be a value or a zero-arg callable returning the value.
+    """
     timeout_seconds = OPERATION_TIMEOUTS.get(operation_type, 3)
 
     def decorator(func):
@@ -41,26 +45,20 @@ def database_timeout(operation_type: str):
                 return await asyncio.wait_for(
                     func(*args, **kwargs), timeout=timeout_seconds
                 )
-            except asyncio.TimeoutError:
-                error_msg = f"Database {operation_type} took too long (>{timeout_seconds}s). Please try again."
+            except (asyncio.TimeoutError, ConnectionError, APIError) as e:
                 logger.warning(
-                    f"Database timeout: {operation_type} exceeded {timeout_seconds}s"
+                    f"Database {operation_type} error/timeout after {timeout_seconds}s: {e}"
                 )
-                return OperationResult.error_result(error_msg)
-            except ConnectionError as e:
-                error_msg = "Cannot connect to database. Please try again in a moment."
-                logger.error(f"Database connection error in {operation_type}: {e}")
-                return OperationResult.error_result(error_msg)
-            except APIError as e:
-                error_msg = f"Database error during {operation_type}. Please try again."
-                logger.error(f"Supabase API error in {operation_type}: {e}")
-                return OperationResult.error_result(error_msg)
+                if callable(fallback):
+                    return fallback()
+                return fallback
             except Exception as e:
-                error_msg = (
-                    f"Unexpected error during {operation_type}. Please try again."
+                logger.error(
+                    f"Unexpected database error in {operation_type}: {e}",
                 )
-                logger.error(f"Unexpected database error in {operation_type}: {e}")
-                return OperationResult.error_result(error_msg)
+                if callable(fallback):
+                    return fallback()
+                return fallback
 
         return wrapper
 
@@ -90,12 +88,22 @@ class DatabaseManager:
             log_performance("database_client_init", init_duration)
             logger.info("Database manager initialized with connection pooling")
 
-    @database_timeout("test")
+    @database_timeout(
+        "test",
+        fallback=lambda: OperationResult.error_result(
+            "Database connection failed (timeout)"
+        ),
+    )
     async def test_connection(self) -> OperationResult:
         """Test database connection and basic functionality."""
         try:
             # Simple query to test connection
-            (self._client.table("semantic_content").select("count").limit(1).execute())
+            await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
+                .select("*")
+                .limit(1)
+                .execute()
+            )
 
             return OperationResult.success_result(
                 "Database connection successful!",
@@ -112,7 +120,12 @@ class DatabaseManager:
         """Get database health information."""
         try:
             # Test basic table access
-            (self._client.table("semantic_content").select("count").limit(1).execute())
+            await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
+                .select("*")
+                .limit(1)
+                .execute()
+            )
 
             return {
                 "status": "healthy",
@@ -129,7 +142,12 @@ class DatabaseManager:
                 "message": f"Database error: {str(e)}",
             }
 
-    @database_timeout("save")
+    @database_timeout(
+        "save",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while saving content"
+        ),
+    )
     async def save_content(
         self, content: str, embedding: List[float], user_id: int, guild_id: int
     ) -> OperationResult:
@@ -143,16 +161,17 @@ class DatabaseManager:
 
         try:
             # Insert content with embedding
-            response = (
-                self._client.table("semantic_content")
+            now = datetime.now(timezone.utc).isoformat()
+            response = await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
                 .insert(
                     {
                         "user_id": user_id,
                         "guild_id": guild_id,
                         "content": content.strip(),
                         "embedding": embedding,
-                        "created_at": datetime.utcnow().isoformat(),
-                        "updated_at": datetime.utcnow().isoformat(),
+                        "created_at": now,
+                        "updated_at": now,
                     }
                 )
                 .execute()
@@ -173,7 +192,7 @@ class DatabaseManager:
                 "Database error while saving content", errors=[str(e)]
             )
 
-    @database_timeout("search")
+    @database_timeout("search", fallback=list)
     async def search_content(
         self,
         query_embedding: List[float],
@@ -188,15 +207,17 @@ class DatabaseManager:
             max_distance = 1.0 - min_similarity
 
             # Execute vector similarity search using Supabase's RPC function
-            response = self._client.rpc(
-                "match_semantic_content",
-                {
-                    "query_embedding": query_embedding,
-                    "match_guild_id": guild_id,
-                    "match_threshold": max_distance,
-                    "match_count": limit,
-                },
-            ).execute()
+            response = await asyncio.to_thread(
+                lambda: self._client.rpc(
+                    "match_semantic_content",
+                    {
+                        "query_embedding": query_embedding,
+                        "match_guild_id": guild_id,
+                        "match_threshold": max_distance,
+                        "match_count": limit,
+                    },
+                ).execute()
+            )
 
             results = []
             for row in response.data or []:
@@ -228,13 +249,18 @@ class DatabaseManager:
             logger.error(f"Error searching content: {e}")
             return []
 
-    @database_timeout("delete")
+    @database_timeout(
+        "delete",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while deleting content"
+        ),
+    )
     async def delete_content(self, content_id: UUID, user_id: int) -> OperationResult:
         """Delete content with owner validation."""
         try:
             # First, check if the content exists and user owns it
-            response = (
-                self._client.table("semantic_content")
+            response = await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
                 .select("user_id, content")
                 .eq("id", str(content_id))
                 .execute()
@@ -250,8 +276,8 @@ class DatabaseManager:
                 )
 
             # Delete the content
-            (
-                self._client.table("semantic_content")
+            await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
                 .delete()
                 .eq("id", str(content_id))
                 .execute()
@@ -266,7 +292,12 @@ class DatabaseManager:
                 "Database error while deleting content", errors=[str(e)]
             )
 
-    @database_timeout("edit")
+    @database_timeout(
+        "edit",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while updating content"
+        ),
+    )
     async def edit_content(
         self,
         content_id: UUID,
@@ -284,8 +315,8 @@ class DatabaseManager:
 
         try:
             # First, check if the content exists and user owns it
-            response = (
-                self._client.table("semantic_content")
+            response = await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
                 .select("user_id")
                 .eq("id", str(content_id))
                 .execute()
@@ -300,13 +331,14 @@ class DatabaseManager:
                 )
 
             # Update the content and embedding
-            update_response = (
-                self._client.table("semantic_content")
+            now = datetime.now(timezone.utc).isoformat()
+            update_response = await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
                 .update(
                     {
                         "content": new_content.strip(),
                         "embedding": new_embedding,
-                        "updated_at": datetime.utcnow().isoformat(),  # Manual update
+                        "updated_at": now,  # Manual update
                     }
                 )
                 .eq("id", str(content_id))
@@ -325,7 +357,12 @@ class DatabaseManager:
                 "Database error while updating content", errors=[str(e)]
             )
 
-    @database_timeout("batch_save")
+    @database_timeout(
+        "batch_save",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while batch saving content"
+        ),
+    )
     async def batch_save_content(
         self, content_list: List[Dict[str, Any]]
     ) -> OperationResult:
@@ -363,8 +400,10 @@ class DatabaseManager:
                 )
 
             # Execute batch insert
-            response = (
-                self._client.table("semantic_content").insert(batch_data).execute()
+            response = await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
+                .insert(batch_data)
+                .execute()
             )
 
             if response.data:
@@ -383,15 +422,15 @@ class DatabaseManager:
                 "Database error during batch save", errors=[str(e)]
             )
 
-    @database_timeout("search")
+    @database_timeout("search", fallback=list)
     async def get_user_content(
         self, user_id: int, guild_id: int, limit: int = 50
     ) -> List[SemanticContent]:
         """Get all content saved by a specific user in a guild."""
         try:
             # Query user's content directly (no vector search needed)
-            response = (
-                self._client.table("semantic_content")
+            response = await asyncio.to_thread(
+                lambda: self._client.table("semantic_content")
                 .select("*")
                 .eq("user_id", user_id)
                 .eq("guild_id", guild_id)
@@ -425,7 +464,7 @@ class DatabaseManager:
             logger.error(f"Error retrieving user content: {e}")
             return []
 
-    @database_timeout("search")
+    @database_timeout("search", fallback=lambda: None)
     async def get_active_watch_room(self, guild_id: int) -> Optional[dict]:
         """Get active watch room for guild if it exists and is within 24 hours."""
         try:
@@ -433,8 +472,8 @@ class DatabaseManager:
             twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
 
             # Query for active room within 24 hours
-            response = (
-                self._client.table("watch_rooms")
+            response = await asyncio.to_thread(
+                lambda: self._client.table("watch_rooms")
                 .select("*")
                 .eq("guild_id", guild_id)
                 .gte("created_at", twenty_four_hours_ago.isoformat())
@@ -457,22 +496,29 @@ class DatabaseManager:
             logger.error(f"Error retrieving active watch room: {e}")
             return None
 
-    @database_timeout("save")
+    @database_timeout(
+        "save",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while saving watch room"
+        ),
+    )
     async def save_watch_room(
         self, guild_id: int, room_url: str, created_by: int
     ) -> OperationResult:
         """Save or update watch room for guild."""
         try:
             # Use upsert to handle both new rooms and room updates for same guild
-            response = (
-                self._client.table("watch_rooms")
+            now = datetime.now(timezone.utc).isoformat()
+            response = await asyncio.to_thread(
+                lambda: self._client.table("watch_rooms")
                 .upsert(
                     {
                         "guild_id": guild_id,
                         "room_url": room_url,
-                        "created_at": datetime.utcnow().isoformat(),
+                        "created_at": now,
                         "created_by": created_by,
-                    }
+                    },
+                    on_conflict="guild_id",
                 )
                 .execute()
             )
@@ -492,13 +538,18 @@ class DatabaseManager:
                 "Database error while saving watch room", errors=[str(e)]
             )
 
-    @database_timeout("delete")
+    @database_timeout(
+        "delete",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while cleaning up watch room"
+        ),
+    )
     async def cleanup_invalid_watch_room(self, guild_id: int) -> OperationResult:
         """Clean up invalid watch room for a specific guild immediately."""
         try:
             # Delete the room for this guild
-            (
-                self._client.table("watch_rooms")
+            await asyncio.to_thread(
+                lambda: self._client.table("watch_rooms")
                 .delete()
                 .eq("guild_id", guild_id)
                 .execute()
@@ -515,7 +566,12 @@ class DatabaseManager:
                 "Error during invalid room cleanup", errors=[str(e)]
             )
 
-    @database_timeout("delete")
+    @database_timeout(
+        "delete",
+        fallback=lambda: OperationResult.error_result(
+            "Database operation timed out while cleaning up expired watch rooms"
+        ),
+    )
     async def cleanup_expired_watch_rooms(self) -> OperationResult:
         """Clean up watch rooms older than 24 hours (optional maintenance)."""
         try:
@@ -523,8 +579,8 @@ class DatabaseManager:
             twenty_four_hours_ago = datetime.utcnow() - timedelta(hours=24)
 
             # Delete expired rooms
-            (
-                self._client.table("watch_rooms")
+            await asyncio.to_thread(
+                lambda: self._client.table("watch_rooms")
                 .delete()
                 .lt("created_at", twenty_four_hours_ago.isoformat())
                 .execute()
