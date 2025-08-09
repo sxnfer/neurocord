@@ -72,33 +72,6 @@ class SearchResult(BaseModel):
         return self.similarity_score * 100
 
 
-class SearchQuery(BaseModel):
-    """Model for search query parameters."""
-
-    query: str = Field(..., description="Search query text")
-    user_id: int = Field(..., description="Discord user ID performing search")
-    guild_id: int = Field(..., description="Discord guild ID to search within")
-    limit: int = Field(default=5, description="Maximum number of results")
-    min_similarity: float = Field(
-        default=0.1, description="Minimum similarity threshold"
-    )
-
-
-class WatchRoom(BaseEntity):
-    """Model for Watch2gether rooms."""
-
-    guild_id: int = Field(..., description="Discord guild ID (primary key)")
-    room_url: str = Field(..., description="Watch2gether room URL")
-    created_by: int = Field(..., description="Discord user ID who created the room")
-
-    @property
-    def is_expired(self) -> bool:
-        """Check if room is older than 24 hours."""
-        if not self.created_at:
-            return True
-        return (datetime.utcnow() - self.created_at).total_seconds() > 86400  # 24 hours
-
-
 class OperationResult(BaseModel):
     """Standard result wrapper for operations."""
 
@@ -125,33 +98,6 @@ class OperationResult(BaseModel):
     ) -> "OperationResult":
         """Factory for error results."""
         return self(success=False, message=message, data=data, errors=errors or [])
-
-
-class EmbeddingRequest(BaseModel):
-    """Model for embedding generation requests."""
-
-    text: str = Field(..., description="Text to generate embedding for")
-    model: str = Field(
-        default="text-embedding-3-small", description="OpenAI embedding model"
-    )
-
-    class Config:
-        """Pydantic configuration."""
-
-        json_schema_extra = {
-            "example": {
-                "text": "How to use semantic search in Discord",
-                "model": "text-embedding-ada-002",
-            }
-        }
-
-
-class EmbeddingResponse(BaseModel):
-    """Model for embedding generation responses."""
-
-    embedding: List[float] = Field(..., description="Generated embedding vector")
-    token_count: int = Field(..., description="Number of tokens processed")
-    model_used: str = Field(..., description="Model used for generation")
 
 
 class ContentValidation(BaseModel):
