@@ -51,8 +51,8 @@ class Config(BaseModel):
     @field_validator("openai_api_key")
     def validate_openai_key(cls, value: str) -> str:
         """Validate OpenAI API key format."""
-        if not value.startswith("sk-"):
-            raise ValueError("OpenAI API key must start with 'sk-'")
+        if not value or len(value) < 20:
+            raise ValueError("OpenAI API key appears to be invalid")
         return value
 
     @field_validator("max_search_results")
