@@ -50,6 +50,12 @@ class TestCommands(commands.Cog):
         # Defer the response since database calls can take time
         await interaction.response.defer()
 
+        if not interaction.guild:
+            await interaction.followup.send(
+                "This command can only be used in servers.", ephemeral=True
+            )
+            return
+
         # Test the database connection
         result = await db_manager.test_connection()
 
@@ -92,6 +98,12 @@ class TestCommands(commands.Cog):
         """Test OpenAI embedding API connection."""
         # Defer the response since API calls can take time
         await interaction.response.defer()
+
+        if not interaction.guild:
+            await interaction.followup.send(
+                "This command can only be used in servers.", ephemeral=True
+            )
+            return
 
         # Test the embedding generation
         result = await embedding_manager.test_connection()
