@@ -44,6 +44,7 @@ Thumbs.db
 *.log
 CODEBASE_WALKTHROUGH.md
 database_setup.sql
+REDUNDANCY_REPORT.md
 
 # Terraform state files
 *.tfstate
