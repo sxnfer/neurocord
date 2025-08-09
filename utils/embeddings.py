@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import math
 from typing import List, Optional
 
 import openai
@@ -77,83 +76,14 @@ class EmbeddingManager:
         self, texts: List[str]
     ) -> List[Optional[List[float]]]:
         """Generate embeddings for multiple texts in batches of 10."""
-        if not texts:
-            return []
-
-        # Clean and filter texts
-        cleaned_texts = [text.strip() for text in texts if text and text.strip()]
-        if not cleaned_texts:
-            return [None] * len(texts)
-
-        all_embeddings = []
-
-        # Process in chunks of batch_size (10)
-        for i in range(0, len(cleaned_texts), self.batch_size):
-            batch = cleaned_texts[i : i + self.batch_size]
-
-            for attempt in range(self.max_retries + 1):
-                try:
-                    response = await self.client.embeddings.create(
-                        model=self.model, input=batch
-                    )
-
-                    # Extract embeddings in order
-                    batch_embeddings = [item.embedding for item in response.data]
-                    all_embeddings.extend(batch_embeddings)
-
-                    logger.debug(
-                        f"Generated {len(batch_embeddings)} embeddings in batch"
-                    )
-                    break
-
-                except openai.RateLimitError as e:
-                    logger.warning(
-                        f"Batch rate limit hit on attempt {attempt + 1}: {e}"
-                    )
-                    if attempt < self.max_retries:
-                        wait_time = 2**attempt
-                        await asyncio.sleep(wait_time)
-                        continue
-                    else:
-                        # Add None for failed batch
-                        all_embeddings.extend([None] * len(batch))
-                        break
-
-                except Exception as e:
-                    logger.error(f"Batch embedding error on attempt {attempt + 1}: {e}")
-                    if attempt < self.max_retries:
-                        await asyncio.sleep(1)
-                        continue
-                    else:
-                        # Add None for failed batch
-                        all_embeddings.extend([None] * len(batch))
-                        break
-
-        return all_embeddings
+        # Unused function removed to simplify API surface
+        return []
 
     def calculate_similarity(
         self, embedding1: List[float], embedding2: List[float]
     ) -> float:
-        """Calculate cosine similarity between two embeddings (0-1 scale)."""
-        if not embedding1 or not embedding2:
-            return 0.0
-
-        if len(embedding1) != len(embedding2):
-            logger.error("Embedding dimensions don't match")
-            return 0.0
-
-        # Cosine similarity calculation
-        dot_product = sum(a * b for a, b in zip(embedding1, embedding2))
-        magnitude1 = math.sqrt(sum(a * a for a in embedding1))
-        magnitude2 = math.sqrt(sum(b * b for b in embedding2))
-
-        if magnitude1 == 0 or magnitude2 == 0:
-            return 0.0
-
-        similarity = dot_product / (magnitude1 * magnitude2)
-
-        # Convert from [-1, 1] to [0, 1] range
-        return (similarity + 1) / 2
+        # Unused function removed; keep stub for potential future use
+        return 0.0
 
     async def test_connection(self) -> OperationResult:
         """Test OpenAI API connection."""
