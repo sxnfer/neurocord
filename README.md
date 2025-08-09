@@ -61,7 +61,7 @@ cp .env.example .env
 
 4. Run the bot:
 ```bash
-uv run python bot.py
+uv run python main.py
 ```
 
 ## Configuration
@@ -72,6 +72,7 @@ DISCORD_TOKEN=your_discord_bot_token
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 OPENAI_API_KEY=your_openai_api_key
+WATCH2GETHER_API_KEY=your_watch2gether_api_key # optional, required for /watch
 ```
 
 ## Development
