@@ -50,11 +50,15 @@ class DiscordBot(commands.Bot):
             for cmd in all_commands:
                 self.logger.debug(f"  Command: /{cmd.name} - {cmd.description}")
 
-        # Sync slash commands globally (takes up to 1 hour)
+        # Sync slash commands
         try:
             self.logger.info("🔄 Syncing slash commands with Discord...")
             sync_start = time.time()
-            synced = await self.sync_all_application_commands()
+            # Fallback to general sync for current version compatibility
+            if hasattr(self, "sync_all_application_commands"):
+                synced = await self.sync_all_application_commands()
+            else:
+                synced = await self.sync_application_commands()
             sync_duration = time.time() - sync_start
 
             log_performance(
@@ -189,7 +193,7 @@ async def main():
         startup_logger.step("Connecting to Discord...")
         connect_start = time.time()
         await bot.start(config.discord_token)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         logger.info("👋 Bot stopped by user (Ctrl+C)")
         startup_logger.step("Bot stopped by user interrupt", success=False)
     except Exception as e:
