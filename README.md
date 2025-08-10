@@ -27,10 +27,11 @@ This Discord bot transforms how communities interact within their servers by pro
 
 Built with modern technologies for reliability and performance:
 
-- **Discord Integration**: nextcord library for robust Discord API interaction
-- **Semantic Search**: Vector embeddings with OpenAI for intelligent content matching
-- **Database**: Supabase (PostgreSQL) with pgvector extension for efficient similarity searches
-- **Python**: Version 3.13 with uv package management
+ - **Discord Integration**: nextcord library for robust Discord API interaction
+ - **Semantic Search**: Vector embeddings with OpenAI for intelligent content matching
+ - **Database**: Supabase (PostgreSQL) with pgvector extension for efficient similarity searches
+ - **Python**: Version 3.13 with uv package management
+ - **Voice**: FFmpeg + Discord voice (PyNaCl)
 
 ## Quick Start
 
@@ -39,6 +40,7 @@ Built with modern technologies for reliability and performance:
 - Discord Developer Application and Bot Token
 - Supabase account and database
 - OpenAI API key (for embeddings)
+ - FFmpeg installed and available in PATH
 
 ### Installation
 
@@ -73,6 +75,11 @@ SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 OPENAI_API_KEY=your_openai_api_key
 WATCH2GETHER_API_KEY=your_watch2gether_api_key # optional, required for /watch
+GROK_API_KEY=your_xai_grok_api_key            # optional, required for /diss
+GROK_BASE_URL=https://api.x.ai/v1            # optional, defaults to this
+ELEVENLABS_API_KEY=your_eleven_labs_api_key  # optional, required for /diss
+ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM     # optional, default voice
+FFMPEG_EXECUTABLE=ffmpeg                     # optional, path to ffmpeg
 ```
 
 ## Development
