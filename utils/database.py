@@ -1,4 +1,4 @@
-"""Database operations for semantic search with Supabase and pgvector."""
+"""Database operations for semantic search with Supabase."""
 
 import asyncio
 import time

@@ -75,15 +75,10 @@ class EmbeddingManager:
     async def generate_embeddings_batch(
         self, texts: List[str]
     ) -> List[Optional[List[float]]]:
-        """Generate embeddings for multiple texts in batches of 10."""
-        # Unused function removed to simplify API surface
-        return []
+        """Deprecated: batch generation not used; method removed."""
+        raise NotImplementedError("Batch embedding generation is not implemented")
 
-    def calculate_similarity(
-        self, embedding1: List[float], embedding2: List[float]
-    ) -> float:
-        # Unused function removed; keep stub for potential future use
-        return 0.0
+    # Removed: calculate_similarity (unused)
 
     async def test_connection(self) -> OperationResult:
         """Test OpenAI API connection."""
