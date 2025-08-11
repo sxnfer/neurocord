@@ -1,115 +1,91 @@
-# Discord Bot
+# Neurocord
 
-A powerful Discord bot designed to enhance server functionality through intelligent content management and collaborative entertainment features.
+Your server’s smart sidekick for finding stuff fast and watching together. ⚡️🔍🎬
 
-## Overview
+## What it does
 
-This Discord bot transforms how communities interact within their servers by providing two core capabilities:
+- **AI-powered knowledge base**: Save messages and search them later by meaning, not just keywords.
+- **Watch Together**: Spin up a Watch2Gether room right from Discord and share the link with your server.
 
-1. **Intelligent Content Management** - Enables semantic search and organization of server content, allowing members to save, search, and retrieve information using natural language queries
-2. **Collaborative Entertainment** - Facilitates shared viewing experiences through integrated Watch2gether functionality
+## Commands (slash)
 
-## How It Enhances Your Server
+- `/save content:<text>` — Save content with an AI embedding for semantic search
+- `/search query:<terms> [limit:1-10]` — Find the most relevant saved content
+- `/delete content_id:<uuid>` — Delete content you created
+- `/edit content_id:<uuid> new_content:<text>` — Update content and its embedding
+- `/my_content` — View your saved items
+- `/watch [url:<video_url>]` — Create or fetch your server’s Watch2Gether room (24h)
+- `/watch-delete` — Remove the saved room entry from the bot
+- `/help` — See all commands and examples
 
-### Smart Knowledge Base
-- Turn your Discord server into a searchable knowledge repository
-- Members can save important information, tips, resources, and discussions
-- Find relevant content using natural language searches instead of scrolling through endless message history
-- Perfect for communities, study groups, gaming guilds, and professional teams
+## Tech stack
 
-### Shared Entertainment
-- Create instant watch parties for your community
-- Stream videos together with synchronized playback
-- Strengthen community bonds through shared viewing experiences
-- Ideal for movie nights, educational content, or casual hangouts
+- **Discord**: nextcord
+- **Embeddings**: OpenAI
+- **Database**: Supabase (PostgreSQL + pgvector in the DB)
+- **Runtime/Tooling**: Python 3.13, uv, Ruff, Pytest
 
-## Technology Stack
-
-Built with modern technologies for reliability and performance:
-
- - **Discord Integration**: nextcord library for robust Discord API interaction
- - **Semantic Search**: Vector embeddings with OpenAI for intelligent content matching
- - **Database**: Supabase (PostgreSQL) with pgvector extension for efficient similarity searches
- - **Python**: Version 3.13 with uv package management
- - **Voice**: FFmpeg + Discord voice (PyNaCl)
-
-## Quick Start
+## Quick start
 
 ### Prerequisites
-- Python 3.13 or higher
-- Discord Developer Application and Bot Token
-- Supabase account and database
-- OpenAI API key (for embeddings)
- - FFmpeg installed and available in PATH
+- Python 3.13+
+- Discord bot token
+- Supabase project (URL + service key)
+- OpenAI API key
 
-### Installation
-
-1. Clone the repository:
+### Install
 ```bash
-git clone <repository-url>
-cd discord-bot
-```
-
-2. Install dependencies:
-```bash
+git clone https://github.com/sxnfer/neurocord.git
+cd neurocord
 uv sync
 ```
 
-3. Configure environment variables:
-```bash
-cp .env.example .env
-# Edit .env with your API keys and credentials
-```
-
-4. Run the bot:
-```bash
-uv run python main.py
-```
-
-## Configuration
-
-Create a `.env` file with the following variables:
+### Configure
+Create a `.env` with:
 ```
 DISCORD_TOKEN=your_discord_bot_token
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_key
 OPENAI_API_KEY=your_openai_api_key
-WATCH2GETHER_API_KEY=your_watch2gether_api_key # optional, required for /watch
-GROK_API_KEY=your_xai_grok_api_key            # optional, required for /diss
-GROK_BASE_URL=https://api.x.ai/v1            # optional, defaults to this
-ELEVENLABS_API_KEY=your_eleven_labs_api_key  # optional, required for /diss
-ELEVENLABS_VOICE_ID=21m00Tcm4TlvDq8ikWAM     # optional, default voice
-FFMPEG_EXECUTABLE=ffmpeg                     # optional, path to ffmpeg
+WATCH2GETHER_API_KEY=your_watch2gether_api_key  # optional, required for /watch
+
+# Optional tweaks
+COMMAND_PREFIX=!
+MAX_SEARCH_RESULTS=10
+LOGGING_PRESET=development  # development | production | minimal
+```
+
+### Run
+```bash
+uv run python main.py
 ```
 
 ## Development
 
-### Package Management
 ```bash
-# Install dependencies
+# Install deps
 uv sync
 
-# Add new dependency
-uv add <package-name>
+# Add a dep
+uv add <package>
 
-# Run tests
+# Test
 uv run pytest
 
-# Format code
-uv run ruff format
-
-# Lint code
+# Lint & format
 uv run ruff check .
+uv run ruff format
 ```
 
 ## Contributing
 
-1. Fork the repository
+Got ideas? PRs welcome!
+1. Fork the repo
 2. Create a feature branch
-3. Make your changes
-4. Run tests and linting
-5. Submit a pull request
+3. Make changes + tests
+4. Run linting and tests
+5. Open a PR
 
-## Support
+## Need help?
 
-For questions, issues, or feature requests, please [create an issue](link-to-issues) on GitHub.
+Open an issue and we’ll take it from there. 💬
