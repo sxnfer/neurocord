@@ -95,7 +95,11 @@ async def test_ask_fallback_model(make_cog, interaction):
 
     # First call raises APIError, second succeeds
     client.chat.completions.create.side_effect = [
-        openai.APIError("model error"),
+        openai.APIError(
+            message="model error",
+            request=MagicMock(),
+            body={"error": {"message": "model error"}},
+        ),
         _mock_openai_response("Fallback response"),
     ]
 
