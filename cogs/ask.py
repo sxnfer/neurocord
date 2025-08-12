@@ -4,14 +4,12 @@ import time
 from typing import Optional
 
 import nextcord
+import openai
 from nextcord import SlashOption
 from nextcord.ext import commands
 
-import openai
-
 from utils.config import get_config
 from utils.logging_config import get_logger, log_performance, log_user_interaction
-
 
 logger = get_logger("ask")
 
@@ -96,9 +94,7 @@ class Ask(commands.Cog):
             log_performance("ask_openai_call", api_duration, model=self.model)
 
             # Extract content
-            content = (
-                response.choices[0].message.content if response.choices else ""
-            )
+            content = response.choices[0].message.content if response.choices else ""
             if not content:
                 content = "Sorry, I couldn't generate a response. Please try again."
 
@@ -114,7 +110,9 @@ class Ask(commands.Cog):
 
         except Exception as e:
             total_duration = time.time() - operation_start
-            log_performance("ask_command_total", total_duration, success=False, error=str(e))
+            log_performance(
+                "ask_command_total", total_duration, success=False, error=str(e)
+            )
             logger.exception(f"Unexpected error in /ask: {e}")
 
             embed = nextcord.Embed(
@@ -132,5 +130,3 @@ def setup(bot: commands.Bot):
     """Required setup function for cogs."""
     bot.add_cog(Ask(bot))
     logger.info("Ask cog loaded successfully")
-
-
