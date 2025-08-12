@@ -1,7 +1,7 @@
 """Comprehensive tests for Watch2gether functionality."""
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import aiohttp
@@ -29,7 +29,7 @@ class TestWatchRoomDatabase:
         return {
             "guild_id": 123456789,
             "room_url": "https://w2g.tv/rooms/test123",
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(UTC),
             "created_by": 987654321,
         }
 
@@ -311,7 +311,10 @@ class TestWatch2getherAPI:
             # Note: The actual code has a bug trying to catch ClientTimeout (not an exception)
             # We patch it to be a real exception for testing purposes
             mock_session_instance = AsyncMock()
-            mock_session_instance.post.side_effect = aiohttp.ServerTimeoutError()
+            mock_post_cm = AsyncMock()
+            mock_post_cm.__aenter__.side_effect = aiohttp.ServerTimeoutError()
+            mock_post_cm.__aexit__ = AsyncMock(return_value=None)
+            mock_session_instance.post = MagicMock(return_value=mock_post_cm)
 
             # Create mock for ClientSession context manager
             mock_session_cm = AsyncMock()
@@ -355,7 +358,7 @@ class TestWatchCommands:
         return {
             "guild_id": 123456789,
             "room_url": "https://w2g.tv/rooms/existing123",
-            "created_at": datetime.utcnow() - timedelta(hours=1),  # 1 hour ago
+            "created_at": datetime.now(UTC) - timedelta(hours=1),  # 1 hour ago
             "created_by": 111111111,
         }
 
@@ -827,7 +830,7 @@ def create_mock_room_data(
     return {
         "guild_id": guild_id,
         "room_url": room_url,
-        "created_at": datetime.utcnow() - timedelta(hours=hours_ago),
+        "created_at": datetime.now(UTC) - timedelta(hours=hours_ago),
         "created_by": created_by,
     }
 

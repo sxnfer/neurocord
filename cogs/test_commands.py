@@ -1,5 +1,8 @@
 """Test cog to verify bot functionality."""
 
+# Prevent pytest from collecting this module as tests
+__test__ = False
+
 import nextcord
 from nextcord import SlashOption
 from nextcord.ext import commands

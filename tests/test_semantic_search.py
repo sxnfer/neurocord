@@ -1,7 +1,7 @@
 """Tests for Semantic Search cog flows and security guards."""
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -99,7 +99,7 @@ async def test_search_success(cog, interaction):
             guild_id=interaction.guild.id,
             content="First saved note for testing",
             embedding=None,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         c2 = SemanticContent(
             id=uuid4(),
@@ -107,7 +107,7 @@ async def test_search_success(cog, interaction):
             guild_id=interaction.guild.id,
             content="Second item, more content here",
             embedding=None,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         )
         db.search_content = AsyncMock(
             return_value=[
@@ -243,14 +243,14 @@ async def test_my_content_list(cog, interaction):
             user_id=interaction.user.id,
             guild_id=interaction.guild.id,
             content="Some long content to preview in embed",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         ),
         SemanticContent(
             id=uuid4(),
             user_id=interaction.user.id,
             guild_id=interaction.guild.id,
             content="Another saved item",
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(UTC),
         ),
     ]
 
