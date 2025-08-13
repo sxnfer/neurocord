@@ -22,8 +22,7 @@ class Ask(commands.Cog):
         config = get_config()
         # Initialize async OpenAI client
         self.client = openai.AsyncOpenAI(api_key=config.openai_api_key)
-        # Default to gpt-5-mini as requested; fall back handled at runtime
-        self.model = model_name or "gpt-5-mini"
+        self.model = model_name or "gpt-5-mini-2025-08-07"
         logger.info(f"Ask cog initialized with model: {self.model}")
 
     @nextcord.slash_command(
@@ -73,8 +72,9 @@ class Ask(commands.Cog):
             # Call OpenAI
             api_start = time.time()
             try:
+                used_model = self.model
                 response = await self.client.chat.completions.create(
-                    model=self.model,
+                    model=used_model,
                     messages=[system_message, user_message],
                     temperature=0.7,
                 )
@@ -84,14 +84,14 @@ class Ask(commands.Cog):
                     f"Primary model '{self.model}' failed, attempting fallback: {api_err}"
                 )
                 fallback_model = "gpt-4o-mini"
+                used_model = fallback_model
                 response = await self.client.chat.completions.create(
-                    model=fallback_model,
+                    model=used_model,
                     messages=[system_message, user_message],
                     temperature=0.7,
                 )
-                self.model = fallback_model
             api_duration = time.time() - api_start
-            log_performance("ask_openai_call", api_duration, model=self.model)
+            log_performance("ask_openai_call", api_duration, model=used_model)
 
             # Extract content
             content = response.choices[0].message.content if response.choices else ""
