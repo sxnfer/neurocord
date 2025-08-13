@@ -73,11 +73,13 @@ class Ask(commands.Cog):
             api_start = time.time()
             try:
                 used_model = self.model
-                response = await self.client.chat.completions.create(
-                    model=used_model,
-                    messages=[system_message, user_message],
-                    temperature=0.7,
-                )
+                request_kwargs = {
+                    "model": used_model,
+                    "messages": [system_message, user_message],
+                }
+                if not used_model.startswith("gpt-5"):
+                    request_kwargs["temperature"] = 0.7
+                response = await self.client.chat.completions.create(**request_kwargs)
             except openai.APIError as api_err:
                 # If model is invalid/unavailable, try a sensible fallback
                 logger.warning(
@@ -93,11 +95,13 @@ class Ask(commands.Cog):
                     # Safe default if model naming does not match expected pattern
                     fallback_model = "gpt-5-mini-2025-08-07"
                 used_model = fallback_model
-                response = await self.client.chat.completions.create(
-                    model=used_model,
-                    messages=[system_message, user_message],
-                    temperature=0.7,
-                )
+                request_kwargs = {
+                    "model": used_model,
+                    "messages": [system_message, user_message],
+                }
+                if not used_model.startswith("gpt-5"):
+                    request_kwargs["temperature"] = 0.7
+                response = await self.client.chat.completions.create(**request_kwargs)
             api_duration = time.time() - api_start
             log_performance("ask_openai_call", api_duration, model=used_model)
 
