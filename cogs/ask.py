@@ -22,7 +22,7 @@ class Ask(commands.Cog):
         config = get_config()
         # Initialize async OpenAI client
         self.client = openai.AsyncOpenAI(api_key=config.openai_api_key)
-        self.model = model_name or "gpt-5-mini-2025-08-07"
+        self.model = model_name or "gpt-5-2025-08-07"
         logger.info(f"Ask cog initialized with model: {self.model}")
 
     @nextcord.slash_command(
@@ -83,7 +83,15 @@ class Ask(commands.Cog):
                 logger.warning(
                     f"Primary model '{self.model}' failed, attempting fallback: {api_err}"
                 )
-                fallback_model = "gpt-4o-mini"
+                # Derive a version-matched mini variant as fallback
+                # e.g., gpt-5-2025-08-07 -> gpt-5-mini-2025-08-07
+                if self.model.startswith("gpt-5-mini"):
+                    fallback_model = self.model
+                elif self.model.startswith("gpt-5"):
+                    fallback_model = self.model.replace("gpt-5", "gpt-5-mini", 1)
+                else:
+                    # Safe default if model naming does not match expected pattern
+                    fallback_model = "gpt-5-mini-2025-08-07"
                 used_model = fallback_model
                 response = await self.client.chat.completions.create(
                     model=used_model,
