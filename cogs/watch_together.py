@@ -44,9 +44,9 @@ class WatchTogether(commands.Cog):
             has_preload_url=bool(url),
         )
 
-        # Defer response immediately to prevent timeout
+        # Defer response immediately to prevent timeout (public by default)
         try:
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.defer()
         except Exception as e:
             logger.warning(
                 f"Failed to defer interaction for user {interaction.user.id}: {e}"
@@ -57,7 +57,7 @@ class WatchTogether(commands.Cog):
             # Guard: guild-only command
             if not interaction.guild:
                 await interaction.followup.send(
-                    "This command can only be used in servers.", ephemeral=True
+                    "This command can only be used in servers.", ephemeral=False
                 )
                 return
 
@@ -108,7 +108,8 @@ class WatchTogether(commands.Cog):
                     )
                     embed.set_footer(text="Room expires 24 hours after creation")
 
-                    await interaction.followup.send(embed=embed, ephemeral=False)
+                    # Existing room info should be private to the requester only
+                    await interaction.followup.send(embed=embed, ephemeral=True)
                     return
                 else:
                     # Room was deleted/invalid, clean up database and create new room
@@ -224,9 +225,9 @@ class WatchTogether(commands.Cog):
     )
     async def watch_delete_command(self, interaction: nextcord.Interaction):
         """Manually delete the server's Watch2gether room from the database."""
-        # Defer response immediately to prevent timeout
+        # Defer response immediately to prevent timeout (public)
         try:
-            await interaction.response.defer(ephemeral=True)
+            await interaction.response.defer()
         except Exception as e:
             logger.warning(f"Failed to defer interaction: {e}")
             return
